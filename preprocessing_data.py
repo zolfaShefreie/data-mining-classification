@@ -3,6 +3,20 @@
 import ast
 import pandas as pd
 import numpy as np
+from sklearn import preprocessing
+from sklearn.feature_extraction import FeatureHasher
+from sklearn.model_selection import train_test_split
+
+
+def get_stage(close_value, product, stage, df):
+    if stage != "In Progress":
+        return stage
+    min_value = df[df['Product'] == product][df['Stage'] == "Won"].quantile(.1)['Close_Value']
+    max_value = df[df['Product'] == product][df['Stage'] == "Won"].quantile(.9)['Close_Value']
+    if min_value < close_value < max_value:
+        return "Won"
+    return "Lost"
+
 
 
 class Preprocessing:
@@ -69,4 +83,123 @@ class Preprocessing:
         df['days'] = (df[finish_col_name] - df[start_col_name]) / np.timedelta64(1, 'D')
         return df
 
-    def 
+    def fill_nan_by_mean_group(self, df: pd.DataFrame, group_cols: list, nan_col: str, index_name: str) -> pd.DataFrame:
+        """
+        :param df:
+        :param group_cols: a list of col_name that want to be group and get mean
+        :param nan_col: the name of col that have nan
+        :param index_name: the name if index col
+        :return: result
+        """
+        group_df = df.groupby(group_cols)[nan_col].mean().reset_index()
+        group_df.columns = group_cols + ['mean_value', ]
+        merged_df = pd.merge(df, group_df, on=group_cols)
+        merged_df.sort_values(by=[index_name], inplace=True)
+        merged_df.reset_index(inplace=True)
+        df[nan_col].fillna(merged_df['mean_value'], inplace=True)
+        return df
+
+    def replace_category_date(self, apply_func, col_name: str, arg_cols: list, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        this function just write for our dataset
+        :param apply_func: the function
+        :param col_name:
+        :param arg_cols: a list of col_names for sending as args
+        :return: result
+        """
+        df[col_name] = df.apply(lambda row: apply_func(row[arg_cols[0]], row[arg_cols[1]], row[arg_cols[2]], df),
+                                axis=1)
+        return df
+
+    def label_encode(self, df: pd.DataFrame, col_name: str) -> pd.DataFrame:
+        """
+        :param df:
+        :param col_name:
+        :return: result
+        """
+        label_encoder = preprocessing.LabelEncoder()
+        df[col_name] = label_encoder.fit_transform(df[col_name])
+        return df
+
+    def one_to_hot_encode(self, df: pd.DataFrame, col_name: str, col_names: list):
+        one_to_hot = preprocessing.OneHotEncoder()
+        one_to_hot.fit(np.array(self.category_unique[col_name]).reshape(-1, 1))
+
+        encode_df = pd.DataFrame(one_to_hot.transform(df[[col_name]]).toarray())
+        encode_df.columns = col_names
+
+        df = df.join(encode_df)
+        df = self.delete_features(df, [col_name, ])
+        return df
+
+    def hash_encode(self, df: pd.DataFrame, col_name: str, col_names: list):
+        hashEncoder = FeatureHasher(n_features=6, input_type='string')
+        hashEncoder.fit(self.category_unique[col_name])
+
+        encode_df = pd.DataFrame(hashEncoder.transform(df[col_name]).toarray())
+        encode_df.columns = col_names
+        df = df.join(encode_df)
+        df = self.delete_features(df, [col_name, ])
+        return df
+
+    def get_df_of_categories(self, df: pd.DataFrame) -> list:
+        """
+        this function just write for our dataset
+        :param df:
+        :return:
+        """
+        choices = list()
+
+        remind = pd.DataFrame()
+        close_years = list(df['Close Date Year'].unique())
+        create_years = list(df['Created Date Year'].unique())
+        stages = list(df['Stage'].unique())
+        agents = list(df['SalesAgentEmailID'].unique())
+        products = list(df['Product'].unique())
+
+        for product in products:
+            pro_df = df[df['Product'] == product]
+            for stage in stages:
+                pro_st_df = pro_df[pro_df['Stage'] == stage]
+                for create_year in create_years:
+                    p_st_c_df = pro_st_df[pro_st_df['Created Date Year'] == create_year]
+                    for close_year in close_years:
+                        p_s_c2_df = p_st_c_df[p_st_c_df['Close Date Year'] == close_year]
+                        for agent in agents:
+                            a_p_s_c2_df = p_s_c2_df[p_s_c2_df['SalesAgentEmailID'] == agent]
+                            d = pd.DataFrame()
+                            d = pd.concat([d, a_p_s_c2_df])
+                            if len(d) > 1:
+                                choices.append(d)
+                            elif len(d) == 1:
+                                remind = pd.concat([d, remind])
+        choices.append(remind)
+        return choices
+
+    def split_base_categories(self, df, choices, target_col: str, index_col: str):
+        val_x_data = pd.DataFrame()
+        val_y_data = list()
+        train_x_data = pd.DataFrame()
+        train_y_data = list()
+        for choice in choices:
+            x = choice.drop(target_col, axis=1)
+            x = x.drop(index_col, axis=1)
+            y = choice[target_col]
+            x_train, x_test, y_train, y_test = train_test_split(x, y,
+                                                                train_size=0.8,
+                                                                random_state=42)
+            train_x_data = train_x_data.append(x_train)
+            train_y_data += (y_train.tolist())
+            val_x_data = val_x_data.append(x_test)
+            val_y_data += y_test.tolist()
+
+        train_x_data.reset_index(inplace=True)
+        val_x_data.reset_index(inplace=True)
+
+        return train_x_data, val_x_data, train_y_data, val_y_data
+
+    def preprocess_train_data(self, df):
+        pass
+
+    def preprocess_test_data(self, df):
+        pass
