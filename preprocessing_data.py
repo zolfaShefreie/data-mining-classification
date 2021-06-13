@@ -36,7 +36,7 @@ class Preprocessing:
         f = open(self.CATEGORY_FILE_PATH, "w")
         f.write(str(self.category_unique))
 
-    def make_categories_data(self, df: pd.DataFrame, features: list):
+    def make_categories_data(self, df: pd.DataFrame, features: list, add_other=True):
         """
         fill self.category_unique
         :param df: dataframe of dataset
@@ -45,7 +45,8 @@ class Preprocessing:
         """
         for each in features:
             values = list(df[each].unique().toarray())
-            values.append('other')
+            if add_other:
+                values.append('other')
             self.category_unique[each] = values
 
     def delete_features(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
@@ -219,7 +220,8 @@ class Preprocessing:
         df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID'])
         df = self.fill_nan_by_mean_group(df, ['Product', 'Stage'], 'Close_Value', 'Index')
         df = self.replace_category_data(get_stage, 'Stage', ['Close_Value', 'Product', 'Stage'], df)
-        self.make_categories_data(df, ['Stage', 'Product', 'Agent'])
+        self.make_categories_data(df, ['Product', 'Agent'])
+        self.make_categories_data(df, ['Stage', ], False)
         df = self.label_encode(df, 'Stage')
         choices = self.get_df_of_categories(df)
         train_x_data, val_x_data, train_y_data, val_y_data = self.split_base_categories(df, choices, 'Stage', 'Index')
