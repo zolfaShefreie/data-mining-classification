@@ -59,6 +59,18 @@ class Preprocessing:
             df.drop(each, axis='columns', inplace=True)
         return df
 
+    def change_unexpected_values(self, df: pd.DataFrame, col_name: str):
+        """
+        set unexpected_values (categorical feature values) to other
+        :param df:
+        :param col_name:
+        :return:
+        """
+        unexpected_values = df[df[col_name] not in self.category_unique[col_name]].unique()
+        if unexpected_values:
+            df[col_name] = df[col_name].replace(unexpected_values, 'other')
+        return df
+
     def convert_date_to_year(self, df: pd.DataFrame, column_name: str, delete_date_col=True) -> pd.DataFrame:
         """
         convert date column to year of date
@@ -219,4 +231,15 @@ class Preprocessing:
         return train_x_data, val_x_data, train_y_data, val_y_data
 
     def preprocess_test_data(self, df):
-        pass
+        self.load_categories()
+        if 'Stage' in df.columns:
+            df = self.delete_features(df, ["Stage"])
+        df = self.change_unexpected_values(df, "Product")
+        df = self.change_unexpected_values(df, "Agent")
+        df = self.add_between_two_date(df, 'Created Date', 'Close Date')
+        df = self.convert_date_to_year(df, 'Created Date')
+        df = self.convert_date_to_year(df, 'Close Date')
+        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID'])
+        df = self.one_to_hot_encode(df, 'Product')
+        df = self.one_to_hot_encode(df, 'Agent')
+        return df
