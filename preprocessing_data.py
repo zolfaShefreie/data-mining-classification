@@ -99,7 +99,7 @@ class Preprocessing:
         df[nan_col].fillna(merged_df['mean_value'], inplace=True)
         return df
 
-    def replace_category_date(self, apply_func, col_name: str, arg_cols: list, df: pd.DataFrame) -> pd.DataFrame:
+    def replace_category_data(self, apply_func, col_name: str, arg_cols: list, df: pd.DataFrame) -> pd.DataFrame:
         """
         this function just write for our dataset
         :param apply_func: the function
@@ -118,26 +118,27 @@ class Preprocessing:
         :return: result
         """
         label_encoder = preprocessing.LabelEncoder()
-        df[col_name] = label_encoder.fit_transform(df[col_name])
+        label_encoder.fit(self.category_unique[col_name])
+        df[col_name] = label_encoder.transform(df[col_name])
         return df
 
-    def one_to_hot_encode(self, df: pd.DataFrame, col_name: str, col_names: list):
+    def one_to_hot_encode(self, df: pd.DataFrame, col_name: str):
         one_to_hot = preprocessing.OneHotEncoder()
         one_to_hot.fit(np.array(self.category_unique[col_name]).reshape(-1, 1))
 
         encode_df = pd.DataFrame(one_to_hot.transform(df[[col_name]]).toarray())
-        encode_df.columns = col_names
+        encode_df.columns = encode_df.get_feature_names()
 
         df = df.join(encode_df)
         df = self.delete_features(df, [col_name, ])
         return df
 
-    def hash_encode(self, df: pd.DataFrame, col_name: str, col_names: list):
+    def hash_encode(self, df: pd.DataFrame, col_name: str):
         hashEncoder = FeatureHasher(n_features=6, input_type='string')
         hashEncoder.fit(self.category_unique[col_name])
 
         encode_df = pd.DataFrame(hashEncoder.transform(df[col_name]).toarray())
-        encode_df.columns = col_names
+        encode_df.columns = [col_name + str(i) for i in range(hashEncoder.n_features)]
         df = df.join(encode_df)
         df = self.delete_features(df, [col_name, ])
         return df
@@ -198,8 +199,24 @@ class Preprocessing:
 
         return train_x_data, val_x_data, train_y_data, val_y_data
 
-    def preprocess_train_data(self, df):
-        pass
+    def preprocess_train_val_data(self, df):
+        # this function just write for our dataset
+        df = self.add_between_two_date(df, 'Created Date', 'Close Date')
+        df = self.convert_date_to_year(df, 'Created Date')
+        df = self.convert_date_to_year(df, 'Close Date')
+        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID'])
+        df = self.fill_nan_by_mean_group(df, ['Product', 'Stage'], 'Close_Value', 'Index')
+        df = self.replace_category_data(get_stage, 'Stage', ['Close_Value', 'Product', 'Stage'], df)
+        self.make_categories_data(df, ['Stage', 'Product', 'Agent'])
+        df = self.label_encode(df, 'Stage')
+        choices = self.get_df_of_categories(df)
+        train_x_data, val_x_data, train_y_data, val_y_data = self.split_base_categories(df, choices, 'Stage', 'Index')
+        train_x_data = self.one_to_hot_encode(train_x_data, 'Product')
+        val_x_data = self.one_to_hot_encode(val_x_data, 'Product')
+        train_x_data = self.hash_encode(train_x_data, 'Agent')
+        val_x_data = self.hash_encode(val_x_data, 'Agent')
+        self.save_categories()
+        return train_x_data, val_x_data, train_y_data, val_y_data
 
     def preprocess_test_data(self, df):
         pass
