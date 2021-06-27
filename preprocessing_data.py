@@ -46,7 +46,7 @@ class Preprocessing:
         for each in features:
             values = list(df[each].unique().toarray())
             if add_other:
-                values.append('other')
+                values.append('other '+ str(each))
             self.category_unique[each] = values
 
     def delete_features(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
@@ -56,8 +56,10 @@ class Preprocessing:
         :param features: a list of name of features that want to delete form dataframe
         :return: dataframe
         """
+        all_features = list(df.columns)
         for each in features:
-            df.drop(each, axis='columns', inplace=True)
+            if each in all_features:
+                df.drop(each, axis='columns', inplace=True)
         return df
 
     def change_unexpected_values(self, df: pd.DataFrame, col_name: str):
@@ -241,7 +243,7 @@ class Preprocessing:
         df = self.add_between_two_date(df, 'Created Date', 'Close Date')
         df = self.convert_date_to_year(df, 'Created Date')
         df = self.convert_date_to_year(df, 'Close Date')
-        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID'])
+        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID', 'Stage'])
         df = self.one_to_hot_encode(df, 'Product')
         df = self.one_to_hot_encode(df, 'Agent')
         return df
