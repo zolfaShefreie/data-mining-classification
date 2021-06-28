@@ -44,9 +44,9 @@ class Preprocessing:
         :return: None
         """
         for each in features:
-            values = list(df[each].unique().toarray())
+            values = list(df[each].unique())
             if add_other:
-                values.append('other '+ str(each))
+                values.append('other ' + str(each))
             self.category_unique[each] = values
 
     def delete_features(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
@@ -69,9 +69,13 @@ class Preprocessing:
         :param col_name:
         :return:
         """
-        unexpected_values = df[df[col_name] not in self.category_unique[col_name]].unique()
+        unexpected_values = set(df[col_name].unique()) ^ set(self.category_unique[col_name])
         if unexpected_values:
-            df[col_name] = df[col_name].replace(unexpected_values, 'other')
+            for each in unexpected_values:
+                df[col_name] = df[col_name].replace(each, 'other')
+        # unexpected_values = df[df[col_name] not in self.category_unique[col_name]].unique()
+        # if unexpected_values:
+        #     df[col_name] = df[col_name].replace(unexpected_values, 'other')
         return df
 
     def convert_date_to_year(self, df: pd.DataFrame, column_name: str, delete_date_col=True) -> pd.DataFrame:
@@ -142,7 +146,7 @@ class Preprocessing:
         one_to_hot.fit(np.array(self.category_unique[col_name]).reshape(-1, 1))
 
         encode_df = pd.DataFrame(one_to_hot.transform(df[[col_name]]).toarray())
-        encode_df.columns = encode_df.get_feature_names()
+        encode_df.columns = one_to_hot.get_feature_names()
 
         df = df.join(encode_df)
         df = self.delete_features(df, [col_name, ])
@@ -170,7 +174,7 @@ class Preprocessing:
         close_years = list(df['Close Date Year'].unique())
         create_years = list(df['Created Date Year'].unique())
         stages = list(df['Stage'].unique())
-        agents = list(df['SalesAgentEmailID'].unique())
+        agents = list(df['Agent'].unique())
         products = list(df['Product'].unique())
 
         for product in products:
@@ -182,7 +186,7 @@ class Preprocessing:
                     for close_year in close_years:
                         p_s_c2_df = p_st_c_df[p_st_c_df['Close Date Year'] == close_year]
                         for agent in agents:
-                            a_p_s_c2_df = p_s_c2_df[p_s_c2_df['SalesAgentEmailID'] == agent]
+                            a_p_s_c2_df = p_s_c2_df[p_s_c2_df['Agent'] == agent]
                             d = pd.DataFrame()
                             d = pd.concat([d, a_p_s_c2_df])
                             if len(d) > 1:
@@ -243,7 +247,7 @@ class Preprocessing:
         df = self.add_between_two_date(df, 'Created Date', 'Close Date')
         df = self.convert_date_to_year(df, 'Created Date')
         df = self.convert_date_to_year(df, 'Close Date')
-        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID', 'Stage'])
+        df = self.delete_features(df, ['Customer', 'SalesAgentEmailID', 'ContactEmailID', 'Stage', 'Index'])
         df = self.one_to_hot_encode(df, 'Product')
-        df = self.one_to_hot_encode(df, 'Agent')
+        df = self.hash_encode(df, 'Agent')
         return df
