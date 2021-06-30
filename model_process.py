@@ -29,5 +29,5 @@ class ModelProcess:
     def get_result_test(self, x_test):
         return self.model.predict(x_test)
 
-    def print_result_validation(self):
-        pass
+    def get_result_validation(self, x_test, y_test):
+        return self.model.score(x_test, y_test)
