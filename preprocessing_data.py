@@ -69,10 +69,10 @@ class Preprocessing:
         :param col_name:
         :return:
         """
-        unexpected_values = set(df[col_name].unique()) ^ set(self.category_unique[col_name])
+        unexpected_values = set(df[col_name].unique()) - set(self.category_unique[col_name])
         if unexpected_values:
             for each in unexpected_values:
-                df[col_name] = df[col_name].replace(each, 'other')
+                df[col_name] = df[col_name].replace(each, 'other ' + str(col_name))
         # unexpected_values = df[df[col_name] not in self.category_unique[col_name]].unique()
         # if unexpected_values:
         #     df[col_name] = df[col_name].replace(unexpected_values, 'other')
@@ -235,6 +235,8 @@ class Preprocessing:
         val_x_data = self.one_to_hot_encode(val_x_data, 'Product')
         train_x_data = self.hash_encode(train_x_data, 'Agent')
         val_x_data = self.hash_encode(val_x_data, 'Agent')
+        train_x_data = self.delete_features(train_x_data, ['index'])
+        val_x_data = self.delete_features(val_x_data, ['index'])
         self.save_categories()
         return train_x_data, val_x_data, train_y_data, val_y_data
 

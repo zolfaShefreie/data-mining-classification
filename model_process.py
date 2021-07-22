@@ -1,4 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import f1_score
 import joblib
 
 
@@ -31,3 +33,10 @@ class ModelProcess:
 
     def get_result_validation(self, x_test, y_test):
         return self.model.score(x_test, y_test)
+
+    def print_result_validation(self, x_test, y_test):
+        predict = self.get_result_test(x_test)
+        print(confusion_matrix(y_test, predict))
+        print(classification_report(y_test, predict))
+        print('f1 score : ', f1_score(y_test, predict))
+        print('score: ', self.model.score(x_test, y_test))

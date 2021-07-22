@@ -5,7 +5,7 @@ from model_process import ModelProcess
 
 
 TRAIN_PATH = './dataset.xls'
-TEST_PATH = './test.xls'
+TEST_PATH = './test-no-stage.xls'
 
 if __name__ == '__main__':
     model_process = ModelProcess()
@@ -19,8 +19,12 @@ if __name__ == '__main__':
         print(model_process.get_result_validation(val_x_data, val_y_data))
     else:
         model_process.load_model()
-    test_df = pd.read_excel(TEST_PATH, index_col=0)
+    test_df = pd.read_excel(TEST_PATH)
     test_df = Preprocessing().preprocess_test_data(test_df)
-    test_df.to_excel('alaki.xls')
+    test_y_df = pd.read_excel('./test-just-stage.xls')
+    p = Preprocessing()
+    p.load_categories()
+    test_y_df = p.label_encode(test_y_df, 'Stage')
     model_process.get_result_test(test_df)
+    model_process.print_result_validation(test_df, test_y_df)
 
