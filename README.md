@@ -5,7 +5,7 @@ This project is a classification project for trade dataset<br/>
 [Test dataset](https://github.com/zolfaShefreie/data-mining-classification/blob/main/test-no-stage.xls)<br/>
 [Test Labels](https://github.com/zolfaShefreie/data-mining-classification/blob/main/test-just-stage.xls)<br/>
 ### Data Analyse
-[here](https://colab.research.google.com/drive/1PR68nlfrVHR2PSeo8ffcijXBB5H5OCSR?usp=sharing)<br/>
+[here](https://github.com/zolfaShefreie/data-mining-classification/blob/main/pro2_data_analyses.ipynb)<br/>
 ### Try another models
-Try 4 classifier models [here](https://colab.research.google.com/drive/1xFAAOC8bYaTR0QA0nel9Sve5Jm2-YOEJ#scrollTo=oEVVJVjRw-gR)
+Try 4 classifier models [here](https://github.com/zolfaShefreie/data-mining-classification/blob/main/pro2_models.ipynb)
 
